@@ -8,6 +8,8 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Quiz' });
 });
 
+//Autoload de comandos con :quizId
+router.param('quizId', quizController.load); //autoload :quizId
 router.get('/author', function(req, res, next) {
   res.render('author', { author: 'Jose Carlos', image: '/images/foto.jpg' });
 });
