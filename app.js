@@ -21,9 +21,13 @@ app.use(partials());
 app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser('Quiz 2015'));
-app.use(session());
+app.use(session({
+    secret: "Quiz 2015",
+    resave: true,
+    saveUninitialized: true
+}));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -32,12 +36,34 @@ app.use(function(req, res, next){
   //guardar path en session.redir para después de login
   if(!req.path.match(/\/login|\/logout/)){
     req.session.redir = req.path;
+  }else{
+    req.session.redir = "/";
   }
 
   //Hacer visible req.session en las vistas
   res.locals.session = req.session;
   next();
 });
+
+app.use(function(req, res, next) {
+  var user = req.session.user;
+  if (!user) return next();
+  var lastAccess = req.session.user.lastAccess;
+  var now = new Date().getTime();
+
+  // performance optimization:
+  // do not update the token more often than once per second
+  if (now - lastAccess < 1000) return next();
+  if (now - lastAccess > 1000*60*2){
+    var sessionController = require('./controllers/session_controller');
+    sessionController.destroy(req, res);
+  }else{
+    // update the token and save the changes
+    req.session.user.lastAccess = now;
+  }
+  next();
+});
+
 app.use('/', routes);
 
 // catch 404 and forward to error handler
